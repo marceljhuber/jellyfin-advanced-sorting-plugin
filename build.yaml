@@ -1,0 +1,19 @@
+---
+name: "Advanced Sorting"
+guid: "b3f0e574-a91c-4f24-8b6a-7c1d9e2f5a80"
+version: "1.0.0.0"
+targetAbi: "10.9.0.0"
+framework: "net9.0"
+overview: "Advanced sorting options including video bitrate, file size, community rating, and IMDb Top 250 order"
+description: >
+  Adds advanced sorting capabilities to your Jellyfin library.
+  Sort movies and videos by video bitrate, file size, community rating,
+  and IMDb Top 250 ranking. Includes a scheduled task to fetch and cache
+  the IMDb Top 250 list automatically.
+category: "General"
+owner: "marceljhuber"
+artifacts:
+- "Jellyfin.Plugin.AdvancedSorting.dll"
+changelog: >
+  Initial release with video bitrate, file size, community rating,
+  and IMDb Top 250 sorting support.
