@@ -28,9 +28,9 @@ public static class FileSizeComparer
         }
 
         // Fallback: try the item's own Size property
-        if (item.Size > 0)
+        if (item.Size.HasValue && item.Size.Value > 0)
         {
-            return item.Size;
+            return item.Size.Value;
         }
 
         return 0;
