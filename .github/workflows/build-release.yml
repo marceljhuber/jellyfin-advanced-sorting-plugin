@@ -6,13 +6,18 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -49,24 +54,34 @@ jobs:
         run: |
           REPO_URL="https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/Jellyfin.Plugin.AdvancedSorting.zip"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S")
+          VERSION="${{ steps.version.outputs.version }}"
+          CHECKSUM="${{ steps.checksum.outputs.md5 }}"
+          OWNER="${{ github.repository_owner }}"
 
-          # Use jq to update the manifest
-          jq --arg ver "${{ steps.version.outputs.version }}" \
-             --arg url "$REPO_URL" \
-             --arg md5 "${{ steps.checksum.outputs.md5 }}" \
-             --arg ts "$TIMESTAMP" \
-             --arg owner "${{ github.repository_owner }}" \
-             '.[0].owner = $owner |
-              .[0].versions = [{
-                version: $ver,
-                changelog: "Release v" + $ver,
-                targetAbi: "10.9.0.0",
-                sourceUrl: $url,
-                checksum: $md5,
-                timestamp: $ts
-              }] + .[0].versions' \
-             manifest.json > manifest_updated.json
-          mv manifest_updated.json manifest.json
+          cat > manifest.json << MANIFEST_EOF
+          [
+              {
+                  "guid": "b3f0e574-a91c-4f24-8b6a-7c1d9e2f5a80",
+                  "name": "Advanced Sorting",
+                  "description": "Adds advanced sorting capabilities to your Jellyfin library. Sort movies and videos by video bitrate, file size, community rating, and IMDb Top 250 ranking.",
+                  "overview": "Sort by video bitrate, file size, community rating, and IMDb Top 250 rank",
+                  "owner": "${OWNER}",
+                  "category": "General",
+                  "versions": [
+                      {
+                          "version": "${VERSION}",
+                          "changelog": "Release v${VERSION}",
+                          "targetAbi": "10.9.0.0",
+                          "sourceUrl": "${REPO_URL}",
+                          "checksum": "${CHECKSUM}",
+                          "timestamp": "${TIMESTAMP}"
+                      }
+                  ]
+              }
+          ]
+          MANIFEST_EOF
+
+          cat manifest.json
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -80,8 +95,6 @@ jobs:
         with:
           files: Jellyfin.Plugin.AdvancedSorting.zip
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit updated manifest
         if: startsWith(github.ref, 'refs/tags/')
@@ -90,7 +103,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout main || git checkout master
           git add manifest.json
-          git commit -m "Update manifest.json for release v${{ steps.version.outputs.version }}" || echo "No changes to commit"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git diff --cached --quiet && echo "No changes to commit" || (git commit -m "Update manifest.json for release v${{ steps.version.outputs.version }}" && git push)
